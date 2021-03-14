@@ -20,9 +20,8 @@ app.post("/read", ...read.middleware, read.route());
 app.get("/oauth", async (req, res, next) => {
   try {
     // get access token as per https://developer.withings.com/oauth2/#operation/oauth2-authorize
-    const result = await fetch({
+    const result = await fetch(`https://wbsapi.withings.net/v2/oauth2`, {
       method: 'POST',
-      url: `https://wbsapi.withings.net/v2/oauth2`,
       body: new URLSearchParams({
         action: 'requesttoken',
         grant_type: 'access_token',
