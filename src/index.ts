@@ -35,7 +35,7 @@ app.get("/oauth", async (req, res, next) => {
       })
     });
 
-    res.status(200).json(await result.text());
+    res.status(200).json(await result.json());
   } catch (e) {
     next(e);
   }
