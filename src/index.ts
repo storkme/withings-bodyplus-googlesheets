@@ -14,6 +14,7 @@ if (!process.env.WITHINGS_CLIENT_ID || !process.env.WITHINGS_CLIENT_SECRET) {
 }
 
 app.use(logger);
+app.use(express.urlencoded({ extended: true }))
 
 app.get("/", express.static(path.join(__dirname, "../static")));
 app.post("/callback", ...read.middleware, read.route());
