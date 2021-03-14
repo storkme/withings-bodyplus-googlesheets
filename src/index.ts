@@ -33,7 +33,7 @@ app.get("/callback", async (req, res, next) => {
           client_id: process.env.WITHINGS_CLIENT_ID!!,
           client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
           code: req.query.code as string,
-          redirect_uri: `https://withings-bodyplus-googlesheets.not.gd/callback `,
+          redirect_uri: `https://withings-bodyplus-googlesheets.not.gd/callback`,
         }),
       })
     ).json();
