@@ -14,7 +14,7 @@ if (!process.env.WITHINGS_CLIENT_ID || !process.env.WITHINGS_CLIENT_SECRET) {
 }
 
 app.use(logger);
-app.use(express.urlencoded({ extended: true }))
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", express.static(path.join(__dirname, "../static")));
 app.post("/callback", ...read.middleware, read.route());
@@ -38,21 +38,22 @@ app.get("/callback", async (req, res, next) => {
       })
     ).json();
 
+    const opts = {
+      method: "POST",
+      headers: {
+        "Content-type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${authResult.access_token}`,
+      },
+      body: new URLSearchParams({
+        action: "subscribe",
+        callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
+      }),
+    };
     const notificationResult = await (
-      await fetch("https://wbsapi.withings.net/notify", {
-        method: "POST",
-        headers: {
-          "Content-type": "application/x-www-form-urlencoded",
-          Authorization: `Bearer ${authResult.access_token}`,
-        },
-        body: new URLSearchParams({
-          action: "subscribe",
-          callback_url: `https://withings-bodyplus-googlesheets.not.gd/callback`,
-        }),
-      })
+      await fetch("https://wbsapi.withings.net/notify", opts)
     ).json();
 
-    req.log?.child({ authResult, notificationResult }).info('subscribed?');
+    req.log?.child({ authResult, notificationResult, opts }).info('subscribed?');
 
     res.status(200).json(notificationResult);
   } catch (e) {
