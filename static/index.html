@@ -34,7 +34,7 @@
 <script>
   const clientId = '3f1b2f2211a58c6c49a558eb538bdcaf1852b295789776a0fd28aafc0ca13ee1';
   const state = '12345';
-  const redirectUri = 'https://withings-bodyplus-googlesheets.not.gd/oauth';
+  const redirectUri = 'https://withings-bodyplus-googlesheets.not.gd/callback';
   const buttonID = document.getElementById('authenticate');
   buttonID.onclick = () => {
     location.href = `http://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${clientId}&state=${state}&scope=user.info,user.metrics,user.activity&redirect_uri=${redirectUri}&mode=demo`;

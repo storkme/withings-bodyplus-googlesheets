@@ -16,8 +16,8 @@ if (!process.env.WITHINGS_CLIENT_ID || !process.env.WITHINGS_CLIENT_SECRET) {
 app.use(logger);
 
 app.get("/", express.static(path.join(__dirname, "../static")));
-app.post("/read", ...read.middleware, read.route());
-app.get("/oauth", async (req, res, next) => {
+app.post("/callback", ...read.middleware, read.route());
+app.get("/callback", async (req, res, next) => {
   try {
     // get access token as per https://developer.withings.com/oauth2/#operation/oauth2-authorize
     const authResult = await (
@@ -32,7 +32,7 @@ app.get("/oauth", async (req, res, next) => {
           client_id: process.env.WITHINGS_CLIENT_ID!!,
           client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
           code: req.query.code as string,
-          redirect_uri: `https://withings-bodyplus-googlesheets.not.gd/oauth`,
+          redirect_uri: `https://withings-bodyplus-googlesheets.not.gd/callback `,
         }),
       })
     ).json();
@@ -46,7 +46,7 @@ app.get("/oauth", async (req, res, next) => {
         },
         body: new URLSearchParams({
           action: "subscribe",
-          callback_url: `https://withings-bodyplus-googlesheets.not.gd/read`,
+          callback_url: `https://withings-bodyplus-googlesheets.not.gd/callback`,
         }),
       })
     ).json();
