@@ -38,7 +38,7 @@ app.get("/callback", async (req, res, next) => {
       })
     ).json();
 
-    if(authResult.status === 200) {
+    if(authResult.status === 0 && authResult.body?.access_token) {
       const opts = {
         method: "POST",
         headers: {
