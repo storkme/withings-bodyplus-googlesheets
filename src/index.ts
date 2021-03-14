@@ -17,19 +17,10 @@ app.use(logger);
 
 app.get('/', express.static(path.join(__dirname, '../static')));
 app.post("/read", ...read.middleware, read.route());
-app.post("/oauth", async (req, res, next) => {
-
-  const body = req.body;
-
-  console.log('req', req);
-  console.log('body', body);
-
-  req.query.code;
-  req.query.state;
-
+app.get("/oauth", async (req, res, next) => {
   try {
     // get access token as per https://developer.withings.com/oauth2/#operation/oauth2-authorize
-    await fetch({
+    const result = await fetch({
       method: 'POST',
       url: `https://wbsapi.withings.net/v2/oauth2`,
       body: new URLSearchParams({
@@ -42,8 +33,8 @@ app.post("/oauth", async (req, res, next) => {
       })
     } as any);
 
-    res.status(200).send('ok');
-  } catch(e) {
+    res.status(200).json(result);
+  } catch (e) {
     next(e);
   }
 });
