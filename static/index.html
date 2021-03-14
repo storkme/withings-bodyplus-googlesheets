@@ -37,7 +37,7 @@
   const redirectUri = 'https://withings-bodyplus-googlesheets.not.gd/callback';
   const buttonID = document.getElementById('authenticate');
   buttonID.onclick = () => {
-    location.href = `http://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${clientId}&state=${state}&scope=user.info,user.metrics,user.activity&redirect_uri=${redirectUri}&mode=demo`;
+    location.href = `http://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${clientId}&state=${state}&scope=user.info,user.metrics,user.activity&redirect_uri=${redirectUri}`;
   }
 </script>
 </body>

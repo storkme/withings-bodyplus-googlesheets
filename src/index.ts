@@ -38,6 +38,8 @@ app.get("/callback", async (req, res, next) => {
       })
     ).json();
 
+    console.log('using authResult: ', authResult);
+
     const opts = {
       method: "POST",
       headers: {
