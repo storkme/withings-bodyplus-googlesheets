@@ -38,26 +38,28 @@ app.get("/callback", async (req, res, next) => {
       })
     ).json();
 
-    console.log('using authResult: ', authResult);
+    if(authResult.status === 200) {
+      const opts = {
+        method: "POST",
+        headers: {
+          "Content-type": "application/x-www-form-urlencoded",
+          Authorization: `Bearer ${authResult.body.access_token}`,
+        },
+        body: new URLSearchParams({
+          action: "subscribe",
+          callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
+        }),
+      };
+      const notificationResult = await (
+        await fetch("https://wbsapi.withings.net/notify", opts)
+      ).json();
 
-    const opts = {
-      method: "POST",
-      headers: {
-        "Content-type": "application/x-www-form-urlencoded",
-        Authorization: `Bearer ${authResult.access_token}`,
-      },
-      body: new URLSearchParams({
-        action: "subscribe",
-        callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
-      }),
-    };
-    const notificationResult = await (
-      await fetch("https://wbsapi.withings.net/notify", opts)
-    ).json();
+      req.log?.child({ authResult, notificationResult, opts }).info('subscribed?');
 
-    req.log?.child({ authResult, notificationResult, opts }).info('subscribed?');
-
-    res.status(200).json(notificationResult);
+      res.status(200).json(notificationResult);
+    } else {
+      res.status(500).json({ error: 'something went wrong authenticating with withings', authResult });
+    }
   } catch (e) {
     next(e);
   }
