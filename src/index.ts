@@ -22,6 +22,9 @@ app.get("/oauth", async (req, res, next) => {
     // get access token as per https://developer.withings.com/oauth2/#operation/oauth2-authorize
     const result = await fetch(`https://wbsapi.withings.net/v2/oauth2`, {
       method: 'POST',
+      headers: {
+        'Content-type': 'application/x-www-form-urlencoded',
+      },
       body: new URLSearchParams({
         action: 'requesttoken',
         grant_type: 'access_token',
@@ -30,9 +33,9 @@ app.get("/oauth", async (req, res, next) => {
         code: req.query.code as string,
         redirect_uri: `https://withings-bodyplus-googlesheets.not.gd/?state=${req.query.start}`,
       })
-    } as any);
+    });
 
-    res.status(200).json(result);
+    res.status(200).json(await result.text());
   } catch (e) {
     next(e);
   }
