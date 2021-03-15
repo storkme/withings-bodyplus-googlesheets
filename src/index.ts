@@ -4,6 +4,7 @@ import pino from "pino-http";
 import * as read from "./routes/read";
 import * as path from "path";
 import fetch from "node-fetch";
+import { apiCall, getSignature } from "./lib/withings";
 
 const app = express();
 const logger = pino({ level: "debug" });
@@ -38,27 +39,27 @@ app.get("/callback", async (req, res, next) => {
       })
     ).json();
 
-    if(authResult.status === 0 && authResult.body?.access_token) {
-      const opts = {
-        method: "POST",
-        headers: {
-          "Content-type": "application/x-www-form-urlencoded",
-          Authorization: `Bearer ${authResult.body.access_token}`,
-        },
-        body: new URLSearchParams({
+    if (authResult.status === 0 && authResult.body?.access_token) {
+      const result = await apiCall(
+        "https://wbsapi.withings.net/notify",
+        authResult.body.access_token,
+        {
           action: "subscribe",
           callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
-        }),
-      };
-      const notificationResult = await (
-        await fetch("https://wbsapi.withings.net/notify", opts)
-      ).json();
+          appli: "1",
+        }
+      );
 
-      req.log?.child({ authResult, notificationResult, opts }).info('subscribed?');
+      req.log?.child({ authResult, result }).info("subscribed?");
 
-      res.status(200).json(notificationResult);
+      res.status(200).json(result);
     } else {
-      res.status(500).json({ error: 'something went wrong authenticating with withings', authResult });
+      res
+        .status(500)
+        .json({
+          error: "something went wrong authenticating with withings",
+          authResult,
+        });
     }
   } catch (e) {
     next(e);
