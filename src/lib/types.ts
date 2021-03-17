@@ -27,7 +27,4 @@ export interface OAuth {
   token_type: string;
 }
 
-export interface WithingsResponse<Body> {
-  status: number;
-  body: Body;
-}
+export const WITHINGS_USER_ACCESS_TOKEN = 'WITHINGS_USER_ACCESS_TOKEN';
