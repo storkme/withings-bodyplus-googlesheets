@@ -1,13 +1,15 @@
 import "source-map-support/register";
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import pino from "pino-http";
-import * as read from "./routes/read";
 import * as path from "path";
 import fetch from "node-fetch";
-import { apiCall, getSignature } from "./lib/withings";
+import { apiCall, client, getSignature } from "./lib/withings";
 
 const app = express();
-const logger = pino({ level: "debug" });
+const logger = pino({
+  level: "debug",
+  useLevel: 'trace' // hide http logs for now ....
+});
 
 if (!process.env.WITHINGS_CLIENT_ID || !process.env.WITHINGS_CLIENT_SECRET) {
   console.error("Missing WITHINGS_CLIENT_ID/WITHINGS_CLIENT_SECRET");
@@ -18,8 +20,26 @@ app.use(logger);
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", express.static(path.join(__dirname, "../static")));
-app.post("/callback", ...read.middleware, read.route());
-app.get("/callback", async (req, res, next) => {
+app.post("/callback", async (req: Request, res: Response, next: NextFunction) => {
+  console.log('/callback has been POSTed to', req.body, req);
+
+  const { userid, startdate, enddate, appli } = req.body;
+  if (!userid || !startdate || !enddate || !appli) {
+    res.status(204).send(); // no body params passed to callback? nothing to do
+    req.log?.debug('callback called with no body data');
+  } else {
+    res.status(204).send(); // reply asap so Withings doesn't time us out
+    const withings = client();
+    try {
+      const measures = await withings.getMeasures(startdate, enddate);
+      req.log?.child({ measures }).debug('got measures!!');
+    } catch (error) {
+      req.log?.child({ error }).debug('failed to obtain measures');
+      next(error);
+    }
+  }
+});
+app.get("/callback", async (req: Request, res: Response, next: NextFunction) => {
   try {
     // get access token as per https://developer.withings.com/oauth2/#operation/oauth2-authorize
     const authResult = await (
@@ -40,14 +60,18 @@ app.get("/callback", async (req, res, next) => {
     ).json();
 
     if (authResult.status === 0 && authResult.body?.access_token) {
+      console.log(`\nWITHINGS_USER_ACCESS_TOKEN=${authResult.body.access_token}
+WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT=${parseInt(authResult.body.expires_in) * 1000}
+WITHINGS_USER_REFRESH_TOKEN=${authResult.body.refresh_token}\n`);
+
       const result = await apiCall(
         "https://wbsapi.withings.net/notify",
-        authResult.body.access_token,
         {
           action: "subscribe",
           callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
           appli: "1",
-        }
+        },
+        authResult.body.access_token,
       );
 
       req.log?.child({ authResult, result }).info("subscribed?");
