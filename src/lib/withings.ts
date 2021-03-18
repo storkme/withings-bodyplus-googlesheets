@@ -85,18 +85,19 @@ export default class WithingsClient {
 
   async apiCall<T>(
     url: string,
-    params: { action: string } & Record<string, string>
+    params: { action: string } & Record<string, string>,
+    auth = true
   ): Promise<T> {
-    const token = await this.getToken();
     const nonce = await this.getNonce();
     const signature = this.getSignature({ action: params.action, nonce });
+    const Authorization = auth ? `Bearer ${await this.getToken()}` : undefined;
 
-    const response = (await (
+    const response = await (
       await fetch(new URL(url, WithingsClient.baseUrl).href, {
         method: "POST",
         headers: {
           "Content-type": "application/x-www-form-urlencoded",
-          ...(token && { Authorization: `Bearer ${await this.getToken()}` }),
+          ...(Authorization && { Authorization }),
         },
         body: new URLSearchParams({
           ...params,
@@ -105,7 +106,7 @@ export default class WithingsClient {
           nonce,
         }).toString(),
       })
-    ).json());
+    ).json();
 
     if (response.status === 0) {
       return response.body;
