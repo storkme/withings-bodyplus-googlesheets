@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import fetch from "node-fetch";
-import { OAuth, WithingsResponse } from "./types";
+import { OAuth, OAuthResponse } from "./types";
 
 /**
  * This file uses the following env vars:
@@ -12,7 +12,7 @@ import { OAuth, WithingsResponse } from "./types";
  * WITHINGS_CALLBACK_URL
  */
 export default class WithingsClient {
-  static readonly baseUrl = 'https://wbsapi.withings.net';
+  static readonly baseUrl = "https://wbsapi.withings.net";
   accessToken: string | undefined = process.env.WITHINGS_USER_ACCESS_TOKEN;
   accessTokenExpiresAt: number | undefined = process.env
     .WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT
@@ -20,12 +20,9 @@ export default class WithingsClient {
     : undefined;
   refreshToken: string | undefined = process.env.WITHINGS_USER_REFRESH_TOKEN;
 
-  constructor() {
+  constructor() {}
 
-  }
-
-
-  private saveAuth({expires_in, access_token, refresh_token}) {
+  private saveAuth({ expires_in, access_token, refresh_token }: OAuthResponse) {
     this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
     this.accessToken = access_token;
     this.refreshToken = refresh_token;
@@ -38,7 +35,7 @@ export default class WithingsClient {
    * @param code
    */
   async getAccessToken(code: string) {
-    const auth = await this.apiCall<{expires_in, access_token, refresh_token}>(`/callback`, {
+    const auth = await this.apiCall<OAuth>(`/callback`, {
       code,
       action: "requesttoken",
       grant_type: "access_token",
@@ -51,27 +48,21 @@ export default class WithingsClient {
     return auth;
   }
 
-  async getMeasures(startdate: number, enddate: number) {
-    return this.apiCall(
-      "/measure",
-      {
-        action: "getmeas",
-        meastypes: "1,5,6,8,76,77,88",
-        startdate,
-        enddate,
-      },
-    );
+  async getMeasures(startdate: string, enddate: string) {
+    return this.apiCall("/measure", {
+      action: "getmeas",
+      meastypes: "1,5,6,8,76,77,88",
+      startdate,
+      enddate,
+    });
   }
 
   async subscribe() {
-    return this.apiCall(
-      "/notify",
-      {
-        action: "subscribe",
-        callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
-        appli: "1",
-      },
-    );
+    return this.apiCall("/notify", {
+      action: "subscribe",
+      callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
+      appli: "1",
+    });
   }
 
   /**
@@ -94,7 +85,7 @@ export default class WithingsClient {
 
   async apiCall<T>(
     url: string,
-    params: { action: string } & Record<string, string>,
+    params: { action: string } & Record<string, string>
   ): Promise<T> {
     const token = await this.getToken();
     const nonce = await this.getNonce();
@@ -105,7 +96,7 @@ export default class WithingsClient {
         method: "POST",
         headers: {
           "Content-type": "application/x-www-form-urlencoded",
-          ...token && {Authorization: `Bearer ${await this.getToken()}`},
+          ...(token && { Authorization: `Bearer ${await this.getToken()}` }),
         },
         body: new URLSearchParams({
           ...params,
@@ -114,12 +105,15 @@ export default class WithingsClient {
           nonce,
         }).toString(),
       })
-    ).json()) as WithingsResponse<T>;
+    ).json());
 
-    if(response.status === 0) {
+    if (response.status === 0) {
       return response.body;
     } else {
-      throw Object.assign(new Error(`call to ${url} failed: ${response.status}`), {response});
+      throw Object.assign(
+        new Error(`call to ${url} failed: ${response.status}`),
+        { response }
+      );
     }
   }
 
@@ -153,7 +147,9 @@ export default class WithingsClient {
       return this.accessToken;
     } else if (this.refreshToken && this.accessTokenExpiresAt! <= Date.now()) {
       const {
-         refresh_token, access_token, expires_in
+        refresh_token,
+        access_token,
+        expires_in,
       } = await this.apiCall<OAuth>("/v2/oauth2", {
         action: "requesttoken",
         grant_type: "refresh_token",

@@ -27,4 +27,8 @@ export interface OAuth {
   token_type: string;
 }
 
-export const WITHINGS_USER_ACCESS_TOKEN = 'WITHINGS_USER_ACCESS_TOKEN';
+export interface OAuthResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: string;
+}
