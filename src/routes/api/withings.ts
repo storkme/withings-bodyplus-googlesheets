@@ -1,18 +1,26 @@
 import { RequestHandler } from "express";
 import WithingsClient from "../../lib/withings";
 
+export function head(): RequestHandler {
+  return (req, res) => {
+    console.log('handling nice head request')
+    res.status(204).send();
+  };
+}
+
 export function get(): RequestHandler {
   const withings = new WithingsClient();
 
   return async (req, res, next) => {
     try {
+      console.log('hi, code=' + req.query.code);
       const authResult = await withings.getAccessToken(
         req.query.code as string
       );
 
       console.log(`\nWITHINGS_USER_ACCESS_TOKEN=${authResult.access_token}
-WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT=${
-        parseInt(authResult.expires_in) * 1000
+WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT=${Date.now() +
+      (parseInt(authResult.expires_in) * 1000)
       }
 WITHINGS_USER_REFRESH_TOKEN=${authResult.refresh_token}\n`);
 

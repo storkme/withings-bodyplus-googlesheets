@@ -18,8 +18,9 @@ if (!process.env.WITHINGS_CLIENT_ID || !process.env.WITHINGS_CLIENT_SECRET || !p
 app.use(logger);
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", express.static(path.join(__dirname, "../static")));
+app.head("/api/callbacks/withings", withings.head());
 app.post("/api/callbacks/withings", withings.post());
 app.get("/api/callbacks/withings", withings.get());
+app.get("/", express.static(path.join(__dirname, "../static")));
 
 app.listen(process.env.NODE_PORT ? parseInt(process.env.NODE_PORT) : 80);

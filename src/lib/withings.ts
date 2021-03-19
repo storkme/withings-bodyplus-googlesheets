@@ -23,7 +23,7 @@ export default class WithingsClient {
   constructor() {}
 
   private saveAuth({ expires_in, access_token, refresh_token }: OAuthResponse) {
-    this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
+    this.accessTokenExpiresAt = Date.now() + (parseInt(expires_in) * 1000);
     this.accessToken = access_token;
     this.refreshToken = refresh_token;
   }
@@ -35,14 +35,16 @@ export default class WithingsClient {
    * @param code
    */
   async getAccessToken(code: string) {
-    const auth = await this.apiCall<OAuth>(`/callback`, {
+    const auth = await this.apiCall<OAuth>(`/v2/oauth2`, {
       code,
       action: "requesttoken",
       grant_type: "access_token",
       client_id: process.env.WITHINGS_CLIENT_ID!!,
       client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
       redirect_uri: this.callback,
-    });
+    }, false);
+
+    console.log('got result from /v2/oauth2', auth);
 
     this.saveAuth(auth);
     return auth;
@@ -60,7 +62,7 @@ export default class WithingsClient {
   async subscribe() {
     return this.apiCall("/notify", {
       action: "subscribe",
-      callbackurl: `https://withings-bodyplus-googlesheets.not.gd/callback`,
+      callbackurl: this.callback,
       appli: "1",
     });
   }
@@ -84,35 +86,39 @@ export default class WithingsClient {
   }
 
   async apiCall<T>(
-    url: string,
+    endpoint: string,
     params: { action: string } & Record<string, string>,
     auth = true
   ): Promise<T> {
     const nonce = await this.getNonce();
     const signature = this.getSignature({ action: params.action, nonce });
     const Authorization = auth ? `Bearer ${await this.getToken()}` : undefined;
+    const reqBody={
+      method: "POST",
+      headers: {
+        "Content-type": "application/x-www-form-urlencoded",
+        ...(Authorization && { Authorization }),
+      },
+      body: new URLSearchParams({
+        ...params,
+        signature,
+        client_id: process.env.WITHINGS_CLIENT_ID!!,
+        nonce,
+      }).toString(),
+    };
+    console.log('request body', reqBody);
 
     const response = await (
-      await fetch(new URL(url, WithingsClient.baseUrl).href, {
-        method: "POST",
-        headers: {
-          "Content-type": "application/x-www-form-urlencoded",
-          ...(Authorization && { Authorization }),
-        },
-        body: new URLSearchParams({
-          ...params,
-          signature,
-          client_id: process.env.WITHINGS_CLIENT_ID!!,
-          nonce,
-        }).toString(),
-      })
+      await fetch(new URL(endpoint, WithingsClient.baseUrl).href, reqBody)
     ).json();
+
+    console.log('response body', response);
 
     if (response.status === 0) {
       return response.body;
     } else {
       throw Object.assign(
-        new Error(`call to ${url} failed: ${response.status}`),
+        new Error(`call to ${endpoint} failed: ${response.status}`),
         { response }
       );
     }
@@ -127,7 +133,7 @@ export default class WithingsClient {
     const signature = this.getSignature(opts);
 
     const response = await (
-      await fetch("/v2/signature", {
+      await fetch(new URL("/v2/signature",WithingsClient.baseUrl).href, {
         method: "POST",
         body: new URLSearchParams({
           ...opts,
@@ -155,7 +161,8 @@ export default class WithingsClient {
         action: "requesttoken",
         grant_type: "refresh_token",
         refresh_token: this.refreshToken,
-      });
+        client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
+      }, false);
       this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
       this.accessToken = access_token;
       this.refreshToken = refresh_token;
