@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import WithingsClient from "../../lib/withings";
+import GoogleSheets from '../../lib/google-sheets';
 
 export function head(): RequestHandler {
   return (req, res) => {
@@ -13,7 +14,6 @@ export function get(): RequestHandler {
 
   return async (req, res, next) => {
     try {
-      console.log('hi, code=' + req.query.code);
       const authResult = await withings.getAccessToken(
         req.query.code as string
       );
@@ -36,7 +36,7 @@ WITHINGS_USER_REFRESH_TOKEN=${authResult.refresh_token}\n`);
   };
 }
 
-export function post(): RequestHandler {
+export function post(gs:GoogleSheets): RequestHandler {
   const withings = new WithingsClient();
 
   return async (req, res, next) => {
@@ -50,6 +50,8 @@ export function post(): RequestHandler {
       try {
         const measures = await withings.getMeasures(startdate, enddate);
         req.log?.child({ measures }).debug("got measures!!");
+        await gs.saveValues(measures);
+        req.log?.child({ measures }).debug("appended");
       } catch (error) {
         req.log?.child({ error }).error("failed to obtain measures");
         next(error);

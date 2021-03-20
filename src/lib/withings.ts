@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import fetch from "node-fetch";
-import { OAuth, OAuthResponse } from "./types";
+import { GetMeasResponse, Measurement, OAuth, OAuthResponse, WithingsTypes, } from "./types";
 
 /**
  * This file uses the following env vars:
@@ -23,7 +23,7 @@ export default class WithingsClient {
   constructor() {}
 
   private saveAuth({ expires_in, access_token, refresh_token }: OAuthResponse) {
-    this.accessTokenExpiresAt = Date.now() + (parseInt(expires_in) * 1000);
+    this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
     this.accessToken = access_token;
     this.refreshToken = refresh_token;
   }
@@ -35,28 +35,43 @@ export default class WithingsClient {
    * @param code
    */
   async getAccessToken(code: string) {
-    const auth = await this.apiCall<OAuth>(`/v2/oauth2`, {
-      code,
-      action: "requesttoken",
-      grant_type: "access_token",
-      client_id: process.env.WITHINGS_CLIENT_ID!!,
-      client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
-      redirect_uri: this.callback,
-    }, false);
-
-    console.log('got result from /v2/oauth2', auth);
+    const auth = await this.apiCall<OAuth>(
+      `/v2/oauth2`,
+      {
+        code,
+        action: "requesttoken",
+        grant_type: "access_token",
+        client_id: process.env.WITHINGS_CLIENT_ID!!,
+        client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
+        redirect_uri: this.callback,
+      },
+      false
+    );
 
     this.saveAuth(auth);
     return auth;
   }
 
-  async getMeasures(startdate: string, enddate: string) {
-    return this.apiCall("/measure", {
+  async getMeasures(
+    startdate: string,
+    enddate: string
+  ): Promise<Measurement[]> {
+    const resp: GetMeasResponse = await this.apiCall("/measure", {
       action: "getmeas",
-      meastypes: "1,5,6,8,76,77,88",
+      meastypes: Array.from(WithingsTypes.keys()).join(","),
       startdate,
       enddate,
     });
+
+    return resp.measuregrps.map(({ date, measures }) => ({
+      updatetime: new Date(date * 1000),
+      measures: Object.fromEntries(
+        measures.map(({ value, type, unit }) => [
+          WithingsTypes.get(type),
+          value * 10 ** unit,
+        ])
+      ),
+    }));
   }
 
   async subscribe() {
@@ -93,7 +108,7 @@ export default class WithingsClient {
     const nonce = await this.getNonce();
     const signature = this.getSignature({ action: params.action, nonce });
     const Authorization = auth ? `Bearer ${await this.getToken()}` : undefined;
-    const reqBody={
+    const reqBody = {
       method: "POST",
       headers: {
         "Content-type": "application/x-www-form-urlencoded",
@@ -106,13 +121,13 @@ export default class WithingsClient {
         nonce,
       }).toString(),
     };
-    console.log('request body', reqBody);
+    console.log("request body", reqBody);
 
     const response = await (
       await fetch(new URL(endpoint, WithingsClient.baseUrl).href, reqBody)
     ).json();
 
-    console.log('response body', response);
+    console.log("response body", response);
 
     if (response.status === 0) {
       return response.body;
@@ -133,7 +148,7 @@ export default class WithingsClient {
     const signature = this.getSignature(opts);
 
     const response = await (
-      await fetch(new URL("/v2/signature",WithingsClient.baseUrl).href, {
+      await fetch(new URL("/v2/signature", WithingsClient.baseUrl).href, {
         method: "POST",
         body: new URLSearchParams({
           ...opts,
@@ -157,12 +172,16 @@ export default class WithingsClient {
         refresh_token,
         access_token,
         expires_in,
-      } = await this.apiCall<OAuth>("/v2/oauth2", {
-        action: "requesttoken",
-        grant_type: "refresh_token",
-        refresh_token: this.refreshToken,
-        client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
-      }, false);
+      } = await this.apiCall<OAuth>(
+        "/v2/oauth2",
+        {
+          action: "requesttoken",
+          grant_type: "refresh_token",
+          refresh_token: this.refreshToken,
+          client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
+        },
+        false
+      );
       this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
       this.accessToken = access_token;
       this.refreshToken = refresh_token;
