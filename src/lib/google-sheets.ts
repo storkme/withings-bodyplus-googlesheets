@@ -14,7 +14,7 @@ export default class GoogleSheets {
 
   async saveValues(measurements: Measurement[]) {
     const sheets = google.sheets({ version: "v4", auth: this.auth });
-    const response = (
+    return (
       await sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadSheetId,
         range: "Sheet1!A:H",
@@ -28,9 +28,6 @@ export default class GoogleSheets {
         },
       })
     ).data;
-    // TODO: Change code below to process the `response` object:
-    console.log(JSON.stringify(response, null, 2));
-    return response;
   }
 
   public static async init(

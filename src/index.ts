@@ -23,6 +23,10 @@ if (
   process.exit(1);
 }
 
+console.log(
+  `http://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${process.env.WITHINGS_CLIENT_ID}&scope=user.info,user.metrics,user.activity&redirect_uri=${process.env.WITHINGS_CALLBACK_URL}`
+);
+
 (async () => {
   const gs = await GoogleSheets.init(
     path.join(__dirname, "../etc/credentials.json"),
@@ -36,7 +40,6 @@ if (
   app.head("/api/callbacks/withings", withings.head());
   app.post("/api/callbacks/withings", withings.post(gs));
   app.get("/api/callbacks/withings", withings.get());
-  app.get("/", express.static(path.join(__dirname, "../static")));
 
   app.listen(process.env.NODE_PORT ? parseInt(process.env.NODE_PORT) : 80);
 })().catch((err) => {
