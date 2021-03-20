@@ -24,7 +24,7 @@ if (
 }
 
 console.log(
-  `http://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${process.env.WITHINGS_CLIENT_ID}&scope=user.info,user.metrics,user.activity&redirect_uri=${process.env.WITHINGS_CALLBACK_URL}`
+  `http://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${process.env.WITHINGS_CLIENT_ID}&scope=user.info,user.metrics,user.activity&redirect_uri=${process.env.WITHINGS_CALLBACK_URL}&state=colorado`
 );
 
 (async () => {
