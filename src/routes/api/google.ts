@@ -10,11 +10,13 @@ export function get(
     const { code } = req.query;
 
     if (!code) {
-      return res.status(400).send({ error: "invalid_request" });
+      res.status(400).send({ error: "invalid_request" });
+      return;
     }
 
     try {
       await gs.getToken(code as string);
+      res.status(200).send('nice one');
     } catch (error) {
       next(error);
     }

@@ -40,7 +40,9 @@ if (
 
   const withingsClient = new WithingsClient(withingsCm);
 
-  console.log("Withings auth URL: ", withingsClient.authUrl);
+  if(!withingsCm.value || withingsCm.value.expiresAt < Date.now()) {
+    console.log("Withings auth URL: ", withingsClient.authUrl);
+  }
 
   const gs = await GoogleSheets.init(
     googleCredentialsCm,

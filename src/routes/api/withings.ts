@@ -12,6 +12,11 @@ export function head(): RequestHandler {
 export function get(withings: WithingsClient): RequestHandler {
   return async (req, res, next) => {
     try {
+      if (!req.query.code) {
+        req.log?.info('withings callback called with no request code');
+        return res.status(400).send({error:'invalid_request'});
+      }
+
       const authResult = await withings.getAccessToken(
         req.query.code as string
       );
