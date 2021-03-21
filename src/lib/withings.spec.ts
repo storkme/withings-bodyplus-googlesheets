@@ -1,8 +1,8 @@
 import WithingsClient from "./withings";
-import { WithingsTypes } from "./types";
 
 describe("WithingsClient", () => {
   const OLD_ENV = process.env;
+  const mockCredentialsManager = {} as any;
 
   beforeEach(() => {
     jest.resetModules();
@@ -18,37 +18,39 @@ describe("WithingsClient", () => {
   });
 
   describe("getToken", () => {
+
     it("should return the token from process.env if it hasn't expired", async () => {
-      process.env = {
-        ...process.env,
-        WITHINGS_USER_ACCESS_TOKEN: "userAccessToken",
-        WITHINGS_USER_REFRESH_TOKEN: "userRefreshToken",
-        WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT: String(Date.now() + 90000),
+      mockCredentialsManager.value = {
+        accessToken: "userAccessToken",
+        refreshToken: "userRefreshToken",
+        expiresAt: Date.now() + 90000,
       };
 
-      const withings = new WithingsClient();
+      const withings = new WithingsClient(mockCredentialsManager);
 
       expect(await withings["getToken"]()).toEqual("userAccessToken");
     });
 
     it("should return undefined if there are no tokens", async () => {
-      const withings = new WithingsClient();
+      mockCredentialsManager.value = undefined;
+      const withings = new WithingsClient(mockCredentialsManager);
 
       expect(await withings["getToken"]()).toEqual(undefined);
     });
 
     it("should use the refresh token if there is one and the token has expired", async () => {
-      process.env = {
-        ...process.env,
-        WITHINGS_USER_ACCESS_TOKEN: "userAccessToken",
-        WITHINGS_USER_REFRESH_TOKEN: "userRefreshToken",
-        WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT: String(Date.now() - 90000),
+      mockCredentialsManager.value = {
+        accessToken: "userAccessToken",
+        refreshToken: "userRefreshToken",
+        expiresAt: Date.now() - 90000,
       };
-      const withings = new WithingsClient();
+
+      const withings = new WithingsClient(mockCredentialsManager);
+
       withings["apiCall"] = jest.fn().mockResolvedValue({
-          refresh_token: "newRefreshToken",
-          access_token: "newAccessToken",
-          expires_in: "1000",
+        refresh_token: "newRefreshToken",
+        access_token: "newAccessToken",
+        expires_in: "1000",
       });
 
       const result = await withings["getToken"]();
@@ -63,10 +65,8 @@ describe("WithingsClient", () => {
   });
 
   describe("getMeasures", () => {
-
-    it('should format the response correctly', async () => {
-
-// my actual data. plz dont make fun of me
+    it("should format the response correctly", async () => {
+      // my actual data. plz dont make fun of me
       const measureResponse = {
         updatetime: 1616141180,
         timezone: "Europe/London",
@@ -131,14 +131,13 @@ describe("WithingsClient", () => {
         ],
       };
 
-      process.env = {
-        ...process.env,
-        WITHINGS_USER_ACCESS_TOKEN: "userAccessToken",
-        WITHINGS_USER_REFRESH_TOKEN: "userRefreshToken",
-        WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT: String(Date.now() + 90000),
+      mockCredentialsManager.value = {
+        accessToken: "userAccessToken",
+        refreshToken: "userRefreshToken",
+        expiresAt: Date.now() + 90000,
       };
 
-      const withings = new WithingsClient();
+      const withings = new WithingsClient(mockCredentialsManager);
 
       withings["getAccessToken"] = jest.fn().mockResolvedValue("token");
       withings["apiCall"] = jest.fn().mockResolvedValue(measureResponse);

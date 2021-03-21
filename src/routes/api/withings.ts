@@ -1,28 +1,20 @@
 import { RequestHandler } from "express";
 import WithingsClient from "../../lib/withings";
-import GoogleSheets from '../../lib/google-sheets';
+import GoogleSheets from "../../lib/google-sheets";
 
 export function head(): RequestHandler {
   return (req, res) => {
-    console.log('handling nice head request')
+    console.log("handling nice head request");
     res.status(204).send();
   };
 }
 
-export function get(): RequestHandler {
-  const withings = new WithingsClient();
-
+export function get(withings: WithingsClient): RequestHandler {
   return async (req, res, next) => {
     try {
       const authResult = await withings.getAccessToken(
         req.query.code as string
       );
-
-      console.log(`\nWITHINGS_USER_ACCESS_TOKEN=${authResult.access_token}
-WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT=${Date.now() +
-      (parseInt(authResult.expires_in) * 1000)
-      }
-WITHINGS_USER_REFRESH_TOKEN=${authResult.refresh_token}\n`);
 
       const subscription = await withings.subscribe();
 
@@ -36,9 +28,10 @@ WITHINGS_USER_REFRESH_TOKEN=${authResult.refresh_token}\n`);
   };
 }
 
-export function post(gs:GoogleSheets): RequestHandler {
-  const withings = new WithingsClient();
-
+export function post(
+  withings: WithingsClient,
+  gs: GoogleSheets
+): RequestHandler {
   return async (req, res, next) => {
     const { userid, startdate, enddate, appli } = req.body;
     if (!userid || !startdate || !enddate || !appli) {

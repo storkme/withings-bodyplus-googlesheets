@@ -1,16 +1,20 @@
-//
-import * as FS from "fs";
 import { google } from "googleapis";
-import * as readline from "readline";
-import { Measurement } from "./types";
+import { GoogleApiCredentials, Measurement } from "./types";
+import CredentialsManager from "./credentials-manager";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 export default class GoogleSheets {
   private constructor(
+    private userCredentials: CredentialsManager<{ tokens: string[] }>,
     private auth: any,
-    private spreadSheetId: string,
+    private spreadSheetId: string
   ) {}
+
+  async getToken(code: string) {
+    const { tokens } = await this.auth.getToken(code);
+    await this.userCredentials.save(tokens);
+  }
 
   async saveValues(measurements: Measurement[]) {
     const sheets = google.sheets({ version: "v4", auth: this.auth });
@@ -31,47 +35,30 @@ export default class GoogleSheets {
   }
 
   public static async init(
-    credentialsFile: string,
-    tokenFile: string,
-    spreadsheetId:string,
+    googleCm: CredentialsManager<GoogleApiCredentials>,
+    googleUserCm: CredentialsManager<any>,
+    spreadsheetId: string
   ): Promise<GoogleSheets> {
     const {
       client_secret,
       client_id,
       redirect_uris: [redirect_uri],
-    } = JSON.parse(await FS.promises.readFile(credentialsFile, "utf-8")).web;
+    } = googleCm.value!!.web;
     const auth = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
 
-    const gs = new GoogleSheets(auth, spreadsheetId);
+    const gs = new GoogleSheets(googleUserCm, auth, spreadsheetId);
 
-    try {
-      const tokenData = JSON.parse(
-        await FS.promises.readFile(tokenFile, "utf-8")
+    if (googleUserCm.value) {
+      auth.setCredentials(googleUserCm.value);
+    } else {
+      console.log(
+        "google auth url: ",
+        auth.generateAuthUrl({
+          access_type: "offline",
+          scope: SCOPES,
+        })
       );
-      auth.setCredentials(tokenData);
-      console.log("read credentials from file", tokenData);
-    } catch (e) {
-      const url = auth.generateAuthUrl({
-        access_type: "offline",
-        scope: SCOPES,
-      });
-
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: true,
-      });
-
-      rl.question(`go here and enter the code: ${url}: `, async (code) => {
-        const { tokens } = await auth.getToken((code as unknown) as string);
-        auth.setCredentials(tokens);
-        await FS.promises.writeFile(tokenFile, JSON.stringify(tokens), {
-          encoding: "utf-8",
-        });
-        console.log("saved credentials", tokens);
-      });
     }
-
     return gs;
   }
 }

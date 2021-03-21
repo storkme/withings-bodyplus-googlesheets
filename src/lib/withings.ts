@@ -1,34 +1,24 @@
 import * as crypto from "crypto";
 import fetch from "node-fetch";
-import { GetMeasResponse, Measurement, OAuth, OAuthResponse, WithingsTypes, } from "./types";
+import { GetMeasResponse, Measurement, OAuth, WithingsTypes, WithingsUserCredentials, } from "./types";
+import CredentialsManager from "./credentials-manager";
 
 /**
  * This file uses the following env vars:
- * WITHINGS_USER_ACCESS_TOKEN
- * WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT
- * WITHINGS_USER_REFRESH_TOKEN
  * WITHINGS_CLIENT_ID
  * WITHINGS_CLIENT_SECRET
  * WITHINGS_CALLBACK_URL
  */
 export default class WithingsClient {
   static readonly baseUrl = "https://wbsapi.withings.net";
-  accessToken: string | undefined = process.env.WITHINGS_USER_ACCESS_TOKEN;
-  accessTokenExpiresAt: number | undefined = process.env
-    .WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT
-    ? parseInt(process.env.WITHINGS_USER_ACCESS_TOKEN_EXPIRES_AT)
-    : undefined;
-  refreshToken: string | undefined = process.env.WITHINGS_USER_REFRESH_TOKEN;
 
-  constructor() {}
-
-  private saveAuth({ expires_in, access_token, refresh_token }: OAuthResponse) {
-    this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
-    this.accessToken = access_token;
-    this.refreshToken = refresh_token;
-  }
+  constructor(private cm: CredentialsManager<WithingsUserCredentials>) {}
 
   private readonly callback = process.env.WITHINGS_CALLBACK_URL!!;
+
+  get authUrl() {
+    return `https://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${process.env.WITHINGS_CLIENT_ID}&state=colorado&scope=user.info,user.metrics,user.activity&redirect_uri=${process.env.WITHINGS_CALLBACK_URL}`;
+  }
 
   /**
    * https://developer.withings.com/oauth2/#operation/oauth2-authorize
@@ -48,7 +38,12 @@ export default class WithingsClient {
       false
     );
 
-    this.saveAuth(auth);
+    await this.cm.save({
+      expiresAt: Date.now() + parseInt(auth.expires_in) * 1000,
+      accessToken: auth.access_token,
+      refreshToken: auth.refresh_token,
+    });
+
     return auth;
   }
 
@@ -165,9 +160,15 @@ export default class WithingsClient {
   }
 
   private async getToken(): Promise<string | undefined> {
-    if (this.accessToken && this.accessTokenExpiresAt! > Date.now()) {
-      return this.accessToken;
-    } else if (this.refreshToken && this.accessTokenExpiresAt! <= Date.now()) {
+    if (!this.cm.value) {
+      // no stored credentials? nothing to do..
+      return undefined;
+    }
+
+    const { accessToken, expiresAt, refreshToken } = this.cm.value;
+    if (accessToken && expiresAt! > Date.now()) {
+      return accessToken;
+    } else if (refreshToken && expiresAt! <= Date.now()) {
       const {
         refresh_token,
         access_token,
@@ -177,15 +178,17 @@ export default class WithingsClient {
         {
           action: "requesttoken",
           grant_type: "refresh_token",
-          refresh_token: this.refreshToken,
+          refresh_token: refreshToken,
           client_secret: process.env.WITHINGS_CLIENT_SECRET!!,
         },
         false
       );
-      this.accessTokenExpiresAt = Date.now() + parseInt(expires_in) * 1000;
-      this.accessToken = access_token;
-      this.refreshToken = refresh_token;
-      return this.accessToken;
+      await this.cm.save({
+        expiresAt: Date.now() + parseInt(expires_in) * 1000,
+        accessToken: access_token,
+        refreshToken: refresh_token,
+      });
+      return access_token;
     }
   }
 }

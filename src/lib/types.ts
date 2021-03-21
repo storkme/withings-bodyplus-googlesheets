@@ -34,17 +34,24 @@ export interface OAuthResponse {
 }
 
 export type MeasureTypeCode = 1 | 5 | 6 | 8 | 76 | 77 | 88;
-export type MeasureType = 'weight' | 'fatfreeMass' | 'fatRatio' | 'fatMass' | 'muscleMass' | 'hydration' | 'boneMass';
+export type MeasureType =
+  | "weight"
+  | "fatfreeMass"
+  | "fatRatio"
+  | "fatMass"
+  | "muscleMass"
+  | "hydration"
+  | "boneMass";
 
 export const WithingsTypes = new Map<MeasureTypeCode, MeasureType>()
-  .set(1, 'weight')
-  .set(5, 'fatfreeMass')
-  .set(6, 'fatRatio')
-  .set(8, 'fatMass')
-  .set(76, 'muscleMass')
-  .set(77, 'hydration')
-  .set(88, 'boneMass')
-  .set(1, 'weight');
+  .set(1, "weight")
+  .set(5, "fatfreeMass")
+  .set(6, "fatRatio")
+  .set(8, "fatMass")
+  .set(76, "muscleMass")
+  .set(77, "hydration")
+  .set(88, "boneMass")
+  .set(1, "weight");
 
 export interface GetMeasResponse {
   updatetime: number;
@@ -69,4 +76,18 @@ export interface GetMeasResponse {
 export interface Measurement {
   updatetime: Date;
   measures: Record<MeasureType, number>;
+}
+
+export interface WithingsUserCredentials {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+export interface GoogleApiCredentials {
+  web: {
+    client_secret: string;
+    client_id: string;
+    redirect_uris: string[];
+  };
 }
