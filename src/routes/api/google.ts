@@ -3,7 +3,7 @@ import { RequestHandler } from "express";
 import GoogleSheets from "../../lib/google-sheets";
 
 export function get(
-  cm: CredentialsManager<string>,
+  cm: CredentialsManager<any>,
   gs: GoogleSheets
 ): RequestHandler {
   return async (req, res, next) => {

@@ -55,7 +55,7 @@ if (
   app.head("/api/callbacks/withings", withings.head());
   app.post("/api/callbacks/withings", withings.post(withingsClient, gs));
 
-  app.get('/api/callbacks/google', google)
+  app.get('/api/callbacks/google', google.get(googleUserCm, gs))
 
   app.listen(process.env.NODE_PORT ? parseInt(process.env.NODE_PORT) : 80);
 })().catch((err) => {
