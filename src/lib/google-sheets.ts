@@ -12,8 +12,9 @@ export default class GoogleSheets {
   ) {}
 
   async getToken(code: string) {
-    const { tokens } = await this.auth.getToken(code);
-    await this.userCredentials.save(tokens);
+    const token = await this.auth.getToken(code);
+    await this.auth.setCredentials(token);
+    await this.userCredentials.save(token.tokens);
   }
 
   async saveValues(measurements: Measurement[]) {
