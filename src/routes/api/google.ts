@@ -15,8 +15,8 @@ export function get(
     }
 
     try {
-      await gs.getToken(code as string);
-      res.status(200).send('nice one');
+      const result = await gs.getToken(code as string);
+      res.status(200).send({status:'👌', result});
     } catch (error) {
       next(error);
     }
