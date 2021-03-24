@@ -1,8 +1,11 @@
 import { google } from "googleapis";
-import { GoogleApiCredentials, Measurement } from "./types";
+import { GoogleApiCredentials, Measurement, WithingsTypes } from "./types";
 import CredentialsManager from "./credentials-manager";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const sortedFields = Array.from(WithingsTypes.entries())
+  .sort(([typeIdA], [typeIdB]) => typeIdA - typeIdB)
+  .map(([, measureKey]) => measureKey);
 
 export default class GoogleSheets {
   private constructor(
@@ -27,13 +30,26 @@ export default class GoogleSheets {
         valueInputOption: "RAW",
         requestBody: {
           majorDimension: "ROWS",
-          values: measurements.map(({ updatetime, measures }) => [
-            updatetime,
-            ...Object.values(measures),
-          ]),
+          values: GoogleSheets.formatValues(measurements),
         },
       })
     ).data;
+  }
+
+  /**
+   * Format measurement results into rows consisting of a date followed by the measurements sorted according
+   * to their withings ID type (see WithingsTypes for details). If the required measure doesn't have a value,
+   * undefined is used.
+   * @param measurements
+   * @private
+   */
+  private static formatValues(
+    measurements: Measurement[]
+  ): [Date, ...(number | undefined)[]][] {
+    return measurements.map(({ updatetime, measures }) => [
+      updatetime,
+      ...sortedFields.map((field) => measures[field]),
+    ]);
   }
 
   public static async init(

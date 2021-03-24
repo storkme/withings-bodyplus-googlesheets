@@ -50,8 +50,7 @@ export const WithingsTypes = new Map<MeasureTypeCode, MeasureType>()
   .set(8, "fatMass")
   .set(76, "muscleMass")
   .set(77, "hydration")
-  .set(88, "boneMass")
-  .set(1, "weight");
+  .set(88, "boneMass");
 
 export interface GetMeasResponse {
   updatetime: number;

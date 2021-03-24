@@ -44,6 +44,7 @@ describe("WithingsClient", () => {
         refreshToken: "userRefreshToken",
         expiresAt: Date.now() - 90000,
       };
+      mockCredentialsManager.save = jest.fn();
 
       const withings = new WithingsClient(mockCredentialsManager);
 
