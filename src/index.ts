@@ -18,10 +18,11 @@ if (
   !process.env.WITHINGS_CLIENT_ID ||
   !process.env.WITHINGS_CLIENT_SECRET ||
   !process.env.WITHINGS_CALLBACK_URL ||
-  !process.env.GOOGLE_SHEET_ID
+  !process.env.GOOGLE_SHEET_ID ||
+  !process.env.GOOGLE_SHEET_RANGE
 ) {
   console.error(
-    "Missing WITHINGS_CLIENT_ID / WITHINGS_CLIENT_SECRET / WITHINGS_CALLBACK_URL / process.env.GOOGLE_SHEET_ID"
+    "Missing WITHINGS_CLIENT_ID / WITHINGS_CLIENT_SECRET / WITHINGS_CALLBACK_URL / GOOGLE_SHEET_ID / GOOGLE_SHEET_RANGE"
   );
   process.exit(1);
 }
@@ -47,7 +48,8 @@ if (
   const gs = await GoogleSheets.init(
     googleCredentialsCm,
     googleUserCm,
-    process.env.GOOGLE_SHEET_ID!!
+    process.env.GOOGLE_SHEET_ID!!,
+    process.env.GOOGLE_SHEET_RANGE!!,
   );
 
   app.use(logger);

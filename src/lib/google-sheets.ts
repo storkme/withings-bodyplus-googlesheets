@@ -11,7 +11,8 @@ export default class GoogleSheets {
   private constructor(
     private userCredentials: CredentialsManager<{ tokens: string[] }>,
     private auth: any,
-    private spreadSheetId: string
+    private spreadSheetId: string,
+    private insertRange: string,
   ) {}
 
   async getToken(code: string) {
@@ -26,7 +27,7 @@ export default class GoogleSheets {
     return (
       await sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadSheetId,
-        range: "Sheet1!A:H",
+        range: this.insertRange,
         valueInputOption: "RAW",
         requestBody: {
           majorDimension: "ROWS",
@@ -55,7 +56,8 @@ export default class GoogleSheets {
   public static async init(
     googleCm: CredentialsManager<GoogleApiCredentials>,
     googleUserCm: CredentialsManager<any>,
-    spreadsheetId: string
+    spreadsheetId: string,
+    googleSheetRange: string,
   ): Promise<GoogleSheets> {
     const {
       client_secret,
@@ -64,7 +66,7 @@ export default class GoogleSheets {
     } = googleCm.value!!.web;
     const auth = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
 
-    const gs = new GoogleSheets(googleUserCm, auth, spreadsheetId);
+    const gs = new GoogleSheets(googleUserCm, auth, spreadsheetId, googleSheetRange);
 
     if (googleUserCm.value) {
       auth.setCredentials(googleUserCm.value);
