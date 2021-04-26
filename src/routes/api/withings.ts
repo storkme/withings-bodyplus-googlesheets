@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import WithingsClient from "../../lib/withings";
 import GoogleSheets from "../../lib/google-sheets";
+import { WithingsTypes } from '../../lib/types';
 
 export function head(): RequestHandler {
   return (req, res) => {
@@ -14,7 +15,7 @@ export function get(withings: WithingsClient): RequestHandler {
     try {
       if (!req.query.code) {
         req.log?.info('withings callback called with no request code');
-        return res.status(400).send({error:'invalid_request'});
+        return res.status(400).send({ error: 'invalid_request' });
       }
 
       const authResult = await withings.getAccessToken(
@@ -47,8 +48,11 @@ export function post(
 
       try {
         const measures = await withings.getMeasures(startdate, enddate);
-        req.log?.child({ measures }).debug("got measures!!");
-        await gs.saveValues(measures);
+
+        // filter out measures records with missing data points (e.g. no 'fat ratio' measurement)
+        const fullMeasures = measures.filter(m => Object.keys(m.measures).length === WithingsTypes.size);
+
+        await gs.saveValues(fullMeasures);
         req.log?.child({ measures }).debug("appended");
       } catch (error) {
         req.log?.child({ error }).error("failed to obtain measures");
