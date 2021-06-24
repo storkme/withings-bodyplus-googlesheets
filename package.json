@@ -24,7 +24,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "googleapis": "^67.1.1",
-    "node-fetch": "2.5.x",
+    "node-fetch": "2.6.1",
     "pino": "^6.11.2",
     "pino-http": "^5.5.0",
     "rxjs": "^6.6.6",
